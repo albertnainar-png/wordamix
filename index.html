@@ -18,7 +18,7 @@ button{font:inherit;border:1px solid #2b3240;background:#151922;color:#fff;borde
 .stat{background:#151922;border:1px solid #252b36;border-radius:14px;padding:10px;text-align:center}
 .stat b{display:block;font-size:21px}.stat span{font-size:11px;color:#9ca3af}
 .board{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;max-width:440px;margin:auto;touch-action:none}
-.cell{width:100%;aspect-ratio:1;border:1px solid #2b3240;border-radius:16px;background:#151922;color:#fff;display:flex;align-items:center;justify-content:center;font-size:clamp(28px,8vw,44px);font-weight:800;cursor:pointer;user-select:none;touch-action:none}
+.cell{width:100%;aspect-ratio:1;border:1px solid #2b3240;border-radius:16px;background:#151922;color:#fff;display:flex;align-items:center;justify-content:center;font-size:clamp(28px,8vw,44px);font-weight:800;cursor:pointer;user-select:none;touch-action:none;-webkit-user-select:none}
 .cell.selected{background:#26324a;border-color:#7c9cff;transform:scale(.94)}
 .word{text-align:center;min-height:38px;font-size:25px;font-weight:800;letter-spacing:.08em;margin:15px 0 5px}
 .hint{text-align:center;color:#9ca3af;font-size:12px}
@@ -37,7 +37,7 @@ button{font:inherit;border:1px solid #2b3240;background:#151922;color:#fff;borde
 <div class="stats"><div class="stat"><b id="score">0</b><span>SCORE</span></div><div class="stat"><b id="time">60</b><span>SECONDS</span></div><div class="stat"><b id="combo">0</b><span>COMBO</span></div></div>
 <div id="board" class="board"></div>
 <div id="word" class="word">&nbsp;</div>
-<div class="hint">Tap adjacent letters. Tap the last letter again to submit.</div>
+<div class="hint">Tap letters to build a word, or swipe across adjacent letters. Tap the last letter again to submit.</div>
 <div class="actions"><button id="clear">Clear</button></div>
 <div id="msg" class="msg">Find a word of 3+ letters.</div>
 <div class="found"><h3>Words found <span id="count">0</span></h3><div id="list" class="list"></div></div>
@@ -46,25 +46,96 @@ button{font:inherit;border:1px solid #2b3240;background:#151922;color:#fff;borde
 <script>
 (function(){
 const boardEl=document.getElementById("board"),wordEl=document.getElementById("word"),scoreEl=document.getElementById("score"),timeEl=document.getElementById("time"),comboEl=document.getElementById("combo"),listEl=document.getElementById("list"),countEl=document.getElementById("count"),msgEl=document.getElementById("msg");
-const dict=new Set(("CAT CATS CAR CARD CARE CARED CARES CODE CODES COLD COLDER CORD CORE CORES COST COT DOG DOT DOTS DOOR DOTE EAR EARS EAST EAT EATS RATE RATES RATED READ READER RED REDS RIDE RIDER ROAD ROAR ROSE SAND SANE SAVE SAVED SCAR SCORE SEA SEAT SEATED SIDE SIRE SOAR SORT STAR STARE START STONE STORE STORM TONE TONED TOP TOPS TREE TREES WORD WORDS WORK WORKS WORLD WORE WORM MIND MINE MINER TIME TIMES TEAM TEAMS GAME GAMES GATE GATES HOME HOMES HOUSE LIGHT NIGHT RIGHT RING RINGS SING SINGER SONG SONGS PLAY PLAYER PRAY PRAYER PEACE PLACE PLANE PLANET POINT POWER WATER HEART HEAR HEARD HEAT HEATS FIRE FINE FIND FINGER FOOD GOOD GOD GOLD GRACE FAITH HOPE LOVE LIVE").split(" "));
+const dict=new Set(("CAT CATS CAR CARD CARE CARED CARES CODE CODES COLD COLDER CORD CORE CORES COST COT DOG DOT DOTS DOOR DOTE EAR EARS EAST EAT EATS RATE RATES RATED READ READER RED REDS RIDE RIDER ROAD ROAR ROSE SAND SANE SAVE SAVED SCAR SCORE SEA SEAT SEATED SIDE SIRE SOAR SORT STAR STARE START STONE STORE STORM TONE TONED TOP TOPS TREE TREES WORD WORDS WORK WORKS WORLD WORE WORM MIND MINE MINER TIME TIMES TEAM TEAMS GAME GAMES GATE GATES HOME HOMES HOUSE LIGHT NIGHT RIGHT RING RINGS SING SINGER SONG SONGS PLAY PLAYER PRAY PRAYER PEACE PLACE PLANE PLANET POINT POWER WATER HEART HEAR HEARD HEAT HEATS FIRE FINE FIND FINGER FOOD GOOD GOD GOLD GRACE FAITH HOPE LOVE LIVE).split(" "));
 const layouts=[
 ["S","T","A","R","E","D","O","R","N","G","I","L","M","P","C","E"],
 ["W","O","R","D","A","M","I","X","S","T","E","P","L","A","Y","N"],
 ["C","O","D","E","S","T","A","R","G","A","M","E","P","L","A","Y"],
 ["P","L","A","N","E","T","O","W","E","R","S","T","A","R","C","O"]
 ];
-let letters=[],selected=[],found=new Set(),score=0,combo=0,time=60,timer=null,drag=false;
+let letters=[],selected=[],found=new Set(),score=0,combo=0,time=60,timer=null,drag=false,moved=false;
+
 function stats(){scoreEl.textContent=score;timeEl.textContent=time;comboEl.textContent=combo}
-function newRound(){clearInterval(timer);letters=layouts[Math.floor(Math.random()*layouts.length)];selected=[];found=new Set();score=0;combo=0;time=60;render();stats();msgEl.textContent="Find a word of 3+ letters.";timer=setInterval(()=>{time--;stats();if(time<=0){clearInterval(timer);msgEl.textContent="Round over! Tap New Round to play again.";boardEl.querySelectorAll(".cell").forEach(x=>x.disabled=true)}},1000)}
-function adjacent(a,b){const ar=Math.floor(a/4),ac=a%4,br=Math.floor(b/4),bc=b%4;return Math.max(Math.abs(ar-br),Math.abs(ac-bc))===1}
-function add(i){if(selected.includes(i))return;if(selected.length&&adjacent(selected[selected.length-1],i)){selected.push(i);paint()}}
-function paint(){boardEl.querySelectorAll(".cell").forEach((b,i)=>b.classList.toggle("selected",selected.includes(i)));wordEl.textContent=selected.map(i=>letters[i]).join("")||"\u00a0"}
-function submit(){const w=selected.map(i=>letters[i]).join("");selected=[];paint();if(w.length<3){msgEl.textContent="Words need at least 3 letters.";return}if(found.has(w)){msgEl.textContent="Already found: "+w;return}if(!dict.has(w)){msgEl.textContent=w+" is not in this round's word list.";combo=0;stats();return}found.add(w);const base=w.length===3?10:w.length===4?25:w.length===5?45:70;combo++;const pts=base+(combo-1)*5;score+=pts;stats();msgEl.textContent="+"+pts+"  "+w+(combo>1?"  • combo x"+combo:"");updateFound()}
-function updateFound(){countEl.textContent=found.size;listEl.innerHTML="";Array.from(found).sort((a,b)=>b.length-a.length||a.localeCompare(b)).forEach(w=>{const s=document.createElement("span");s.className="pill";s.textContent=w;listEl.appendChild(s)})}
-function render(){boardEl.innerHTML="";letters.forEach((ch,i)=>{const b=document.createElement("button");b.type="button";b.className="cell";b.textContent=ch;b.dataset.i=i;b.addEventListener("pointerdown",e=>{e.preventDefault();if(time<=0)return;drag=true;selected=[i];paint()});b.addEventListener("pointerenter",()=>{if(drag&&time>0)add(i)});b.addEventListener("click",()=>{if(time<=0)return;if(selected.length&&selected[selected.length-1]===i)submit();else if(!selected.length){selected=[i];paint()}});boardEl.appendChild(b)});paint();updateFound()}
+function newRound(){
+ clearInterval(timer);
+ letters=[...layouts[Math.floor(Math.random()*layouts.length)]];
+ selected=[];found=new Set();score=0;combo=0;time=60;drag=false;moved=false;
+ render();stats();msgEl.textContent="Find a word of 3+ letters.";
+ timer=setInterval(()=>{time--;stats();if(time<=0){clearInterval(timer);msgEl.textContent="Round over! Tap New Round to play again.";boardEl.querySelectorAll(".cell").forEach(x=>x.disabled=true)}},1000)
+}
+function adjacent(a,b){
+ const ar=Math.floor(a/4),ac=a%4,br=Math.floor(b/4),bc=b%4;
+ return Math.max(Math.abs(ar-br),Math.abs(ac-bc))===1
+}
+function add(i){
+ if(selected.includes(i))return;
+ if(selected.length&&adjacent(selected[selected.length-1],i)){selected.push(i);moved=true;paint()}
+}
+function paint(){
+ boardEl.querySelectorAll(".cell").forEach((b,i)=>b.classList.toggle("selected",selected.includes(i)));
+ wordEl.textContent=selected.map(i=>letters[i]).join("")||"\u00a0"
+}
+function submit(){
+ const w=selected.map(i=>letters[i]).join("");
+ selected=[];paint();
+ if(w.length<3){msgEl.textContent="Words need at least 3 letters.";return}
+ if(found.has(w)){msgEl.textContent="Already found: "+w;return}
+ if(!dict.has(w)){msgEl.textContent=w+" is not in the word list.";combo=0;stats();return}
+ found.add(w);
+ const base=w.length===3?10:w.length===4?25:w.length===5?45:70;
+ combo++;const pts=base+(combo-1)*5;score+=pts;stats();
+ msgEl.textContent="+"+pts+"  "+w+(combo>1?"  • combo x"+combo:"");
+ updateFound()
+}
+function updateFound(){
+ countEl.textContent=found.size;listEl.innerHTML="";
+ Array.from(found).sort((a,b)=>b.length-a.length||a.localeCompare(b)).forEach(w=>{
+  const s=document.createElement("span");s.className="pill";s.textContent=w;listEl.appendChild(s)
+ })
+}
+function indexFromPoint(x,y){
+ const el=document.elementFromPoint(x,y);
+ if(!el)return -1;
+ const cell=el.closest(".cell");
+ return cell?Number(cell.dataset.i):-1
+}
+function start(i){
+ if(time<=0)return;
+ drag=true;moved=false;
+ if(selected.length&&selected[selected.length-1]===i){
+   submit();
+   drag=false;
+   return;
+ }
+ selected=[i];paint()
+}
+function move(x,y){
+ if(!drag||time<=0)return;
+ const i=indexFromPoint(x,y);
+ if(i>=0)add(i)
+}
+function end(){
+ if(!drag)return;
+ drag=false;
+ if(moved)submit();
+}
+function render(){
+ boardEl.innerHTML="";
+ letters.forEach((ch,i)=>{
+  const b=document.createElement("button");
+  b.type="button";b.className="cell";b.textContent=ch;b.dataset.i=i;
+  b.addEventListener("pointerdown",e=>{e.preventDefault();start(i)});
+  b.addEventListener("pointermove",e=>{e.preventDefault();move(e.clientX,e.clientY)});
+  b.addEventListener("pointerup",e=>{e.preventDefault();end()});
+  b.addEventListener("pointercancel",end);
+  boardEl.appendChild(b)
+ });
+ paint();updateFound()
+}
 document.getElementById("new").addEventListener("click",newRound);
-document.getElementById("clear").addEventListener("click",()=>{selected=[];paint();msgEl.textContent="Selection cleared."});
-document.addEventListener("pointerup",()=>{if(drag){drag=false;submit()}});
+document.getElementById("clear").addEventListener("click",()=>{selected=[];drag=false;moved=false;paint();msgEl.textContent="Selection cleared."});
+document.addEventListener("pointermove",e=>{if(drag)move(e.clientX,e.clientY)});
+document.addEventListener("pointerup",end);
 newRound();
 })();
 </script>
