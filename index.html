@@ -150,27 +150,55 @@ function cellAt(x,y){
  const el=document.elementFromPoint(x,y);
  return el&&el.closest('.cell');
 }
+let activePointer=null;
+
+function beginDrag(e,cell){
+ if(time<=0)return;
+ activePointer=e.pointerId;
+ swiping=false;
+ cell.setPointerCapture?.(e.pointerId);
+ choose(Number(cell.dataset.i));
+}
+
+function dragMove(e){
+ if(activePointer===null||time<=0)return;
+ const c=cellAt(e.clientX,e.clientY);
+ if(!c)return;
+ const i=Number(c.dataset.i);
+ if(selected.length && i!==selected[selected.length-1]){
+  if(adjacent(selected[selected.length-1],i) && !selected.includes(i)){
+   swiping=true;
+   selected.push(i);
+   update();
+  }
+ }
+}
+
+function finishDrag(e){
+ if(activePointer===null)return;
+ if(e && e.pointerId!==undefined && e.pointerId!==activePointer)return;
+ const wasSwipe=swiping;
+ activePointer=null;
+ if(wasSwipe){
+  submit();
+ }
+ swiping=false;
+}
+
 cells.forEach(cell=>{
- cell.addEventListener('click',e=>{
-  if(swiping){swiping=false;return;}
-  choose(Number(cell.dataset.i));
- });
  cell.addEventListener('pointerdown',e=>{
-  if(time<=0)return;
   e.preventDefault();
-  pointerDown=true;swiping=false;
-  choose(Number(cell.dataset.i));
+  beginDrag(e,cell);
  });
  cell.addEventListener('pointermove',e=>{
-  if(!pointerDown||time<=0)return;
-  const c=cellAt(e.clientX,e.clientY);
-  if(c){
-   const i=Number(c.dataset.i);
-   if(selected.length && i!==selected[selected.length-1]){swiping=true;choose(i);}
-  }
+  e.preventDefault();
+  dragMove(e);
  });
- cell.addEventListener('pointerup',e=>{pointerDown=false;});
- cell.addEventListener('pointercancel',()=>{pointerDown=false;});
+ cell.addEventListener('pointerup',e=>{
+  e.preventDefault();
+  finishDrag(e);
+ });
+ cell.addEventListener('pointercancel',e=>finishDrag(e));
 });
 document.addEventListener('pointerup',()=>{pointerDown=false;});
 newBtn.addEventListener('click',startRound);
