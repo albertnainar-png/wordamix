@@ -49,7 +49,7 @@ button{font:inherit;color:#fff;background:#151922;border:1px solid #303747;borde
 
   <div id="word" class="word">&nbsp;</div>
   <div class="hint">Tap adjacent letters to build a word. Tap the last letter again to submit. Swipe also works.</div>
-  <div class="actions"><button id="clear">Clear</button></div>
+  <div class="actions"><button id="shuffle">Shuffle <span id="shuffleCount">3</span></button><button id="clear">Clear</button></div>
   <div id="msg" class="msg">Find a word of 3+ letters.</div>
   <div class="found"><h3>Words found <span id="count">0</span></h3><div id="list" class="list"></div></div>
   <div class="footer">WORDAMIX • A word game built with HTML, CSS & JavaScript</div>
@@ -82,6 +82,7 @@ let selected=[];
 let found=new Set();
 let score=0,combo=0,time=60,timer=null;
 let pointerDown=false,swiping=false;
+let shuffles=3;
 
 function adjacent(a,b){
  const ar=Math.floor(a/4),ac=a%4,br=Math.floor(b/4),bc=b%4;
@@ -93,6 +94,27 @@ function update(){
  timeEl.textContent=time;
  wordEl.textContent=selected.map(i=>letters[i]).join('')||'\u00a0';
  cells.forEach((c,i)=>c.classList.toggle('selected',selected.includes(i)));
+}
+function updateShuffleButton(){
+ const btn=document.getElementById('shuffle');
+ const count=document.getElementById('shuffleCount');
+ btn.disabled=shuffles<=0 || time<=0;
+ count.textContent=shuffles;
+}
+function shuffleBoard(){
+ if(time<=0 || shuffles<=0)return;
+ shuffles--;
+ for(let i=letters.length-1;i>0;i--){
+  const j=Math.floor(Math.random()*(i+1));
+  [letters[i],letters[j]]=[letters[j],letters[i]];
+ }
+ selected=[];
+ activePointer=null;
+ swiping=false;
+ cells.forEach((c,i)=>{c.textContent=letters[i]});
+ msgEl.textContent='Letters shuffled. '+shuffles+' shuffle'+(shuffles===1?'':'s')+' left.';
+ update();
+ updateShuffleButton();
 }
 function showFound(){
  countEl.textContent=found.size;
@@ -133,16 +155,17 @@ function choose(i){
 function startRound(){
  clearInterval(timer);
  letters=[...layouts[Math.floor(Math.random()*layouts.length)]];
- selected=[];found=new Set();score=0;combo=0;time=60;pointerDown=false;swiping=false;
+ selected=[];found=new Set();score=0;combo=0;time=60;pointerDown=false;swiping=false;shuffles=3;
  cells.forEach((c,i)=>{c.textContent=letters[i];c.disabled=false});
  msgEl.textContent='Find a word of 3+ letters.';
- update();showFound();
+ update();showFound();updateShuffleButton();
  timer=setInterval(()=>{
-  time--;update();
+  time--;update();updateShuffleButton();
   if(time<=0){
    clearInterval(timer);
    cells.forEach(c=>c.disabled=true);
    msgEl.textContent='Round over! Tap New Round to play again.';
+   updateShuffleButton();
   }
  },1000);
 }
