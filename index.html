@@ -102,10 +102,16 @@ function indexFromPoint(x,y){
 function start(i){
  if(time<=0)return;
  drag=true;moved=false;
- if(selected.length&&selected[selected.length-1]===i){
-   submit();
-   drag=false;
-   return;
+ if(selected.length){
+   if(selected[selected.length-1]===i){
+     submit();
+     drag=false;
+     return;
+   }
+   if(adjacent(selected[selected.length-1],i)){
+     add(i);
+     return;
+   }
  }
  selected=[i];paint()
 }
