@@ -177,47 +177,56 @@ function cellAt(x,y){
 let activePointer=null;
 let dragging=false;
 
-function pointToCell(x,y){
+function cellFromPoint(x,y){
  const rect=boardEl.getBoundingClientRect();
- if(x<rect.left||x>rect.right||y<rect.top||y>rect.bottom)return -1;
- const gap=parseFloat(getComputedStyle(boardEl).gap)||0;
+ const gap=8;
  const size=(rect.width-gap*3)/4;
- const col=Math.floor((x-rect.left)/(size+gap));
- const row=Math.floor((y-rect.top)/(size+gap));
- if(col<0||col>3||row<0||row>3)return -1;
- const localX=(x-rect.left)-col*(size+gap);
- const localY=(y-rect.top)-row*(size+gap);
- if(localX>size||localY>size)return -1;
+ const relX=x-rect.left;
+ const relY=y-rect.top;
+ if(relX<0||relY<0||relX>rect.width||relY>rect.height)return -1;
+ let col=Math.floor(relX/(size+gap));
+ let row=Math.floor(relY/(size+gap));
+ if(col>3)col=3;
+ if(row>3)row=3;
+ const insideX=relX-col*(size+gap);
+ const insideY=relY-row*(size+gap);
+ if(insideX>size||insideY>size)return -1;
  return row*4+col;
 }
 
-function startDrag(e){
+function beginSelection(e){
  if(time<=0)return;
  activePointer=e.pointerId;
  dragging=true;
- const i=pointToCell(e.clientX,e.clientY);
- if(i<0)return;
- selected=[i];
- update();
- e.currentTarget.setPointerCapture?.(e.pointerId);
+ const i=cellFromPoint(e.clientX,e.clientY);
+ if(i>=0){
+  selected=[i];
+  update();
+ }
+ if(boardEl.setPointerCapture){
+  try{boardEl.setPointerCapture(e.pointerId)}catch(_){}
+ }
 }
 
-function dragMove(e){
+function continueSelection(e){
  if(!dragging||activePointer!==e.pointerId||time<=0)return;
- const i=pointToCell(e.clientX,e.clientY);
- if(i<0)return;
+ const i=cellFromPoint(e.clientX,e.clientY);
+ if(i<0||selected.length===0)return;
  const last=selected[selected.length-1];
+
  if(i!==last && adjacent(last,i) && !selected.includes(i)){
   selected.push(i);
   update();
  }
 }
 
-function endDrag(e){
+function finishSelection(e){
  if(!dragging||activePointer!==e.pointerId)return;
  dragging=false;
  activePointer=null;
- if(selected.length>=3){
+
+ const word=selected.map(i=>letters[i]).join('');
+ if(word.length>=3){
   submit();
  }else{
   selected=[];
@@ -228,17 +237,17 @@ function endDrag(e){
 
 boardEl.addEventListener('pointerdown',e=>{
  e.preventDefault();
- startDrag(e);
+ beginSelection(e);
 });
 boardEl.addEventListener('pointermove',e=>{
  e.preventDefault();
- dragMove(e);
+ continueSelection(e);
 });
 boardEl.addEventListener('pointerup',e=>{
  e.preventDefault();
- endDrag(e);
+ finishSelection(e);
 });
-boardEl.addEventListener('pointercancel',e=>endDrag(e));
+boardEl.addEventListener('pointercancel',finishSelection);
 newBtn.addEventListener('click',startRound);
 clearBtn.addEventListener('click',()=>clearSelection());
 document.getElementById('shuffle').addEventListener('click',shuffleBoard);
