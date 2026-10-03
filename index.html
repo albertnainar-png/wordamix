@@ -57,6 +57,7 @@ button{font:inherit;color:#fff;background:#151922;border:1px solid #303747;borde
 
 <script>
 (function(){
+const boardEl=document.getElementById('board');
 const cells=[...document.querySelectorAll('.cell')];
 const wordEl=document.getElementById('word');
 const scoreEl=document.getElementById('score');
@@ -232,5 +233,11 @@ document.addEventListener('pointerup',e=>{
 document.addEventListener('pointercancel',e=>{
  if(dragging)endDrag(e);
 });
-
->
+newBtn.addEventListener('click',startRound);
+clearBtn.addEventListener('click',()=>clearSelection());
+document.getElementById('shuffle').addEventListener('click',shuffleBoard);
+startRound();
+})();
+</script>
+</body>
+</html>
