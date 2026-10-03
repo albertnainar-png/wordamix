@@ -177,20 +177,35 @@ function cellAt(x,y){
 let activePointer=null;
 let dragging=false;
 
+function pointToCell(x,y){
+ const rect=boardEl.getBoundingClientRect();
+ if(x<rect.left||x>rect.right||y<rect.top||y>rect.bottom)return -1;
+ const gap=parseFloat(getComputedStyle(boardEl).gap)||0;
+ const size=(rect.width-gap*3)/4;
+ const col=Math.floor((x-rect.left)/(size+gap));
+ const row=Math.floor((y-rect.top)/(size+gap));
+ if(col<0||col>3||row<0||row>3)return -1;
+ const localX=(x-rect.left)-col*(size+gap);
+ const localY=(y-rect.top)-row*(size+gap);
+ if(localX>size||localY>size)return -1;
+ return row*4+col;
+}
+
 function startDrag(e){
  if(time<=0)return;
  activePointer=e.pointerId;
  dragging=true;
- selected=[Number(e.target.dataset.i)];
- boardEl.setPointerCapture?.(e.pointerId);
+ const i=pointToCell(e.clientX,e.clientY);
+ if(i<0)return;
+ selected=[i];
  update();
+ e.currentTarget.setPointerCapture?.(e.pointerId);
 }
 
 function dragMove(e){
  if(!dragging||activePointer!==e.pointerId||time<=0)return;
- const c=cellAt(e.clientX,e.clientY);
- if(!c)return;
- const i=Number(c.dataset.i);
+ const i=pointToCell(e.clientX,e.clientY);
+ if(i<0)return;
  const last=selected[selected.length-1];
  if(i!==last && adjacent(last,i) && !selected.includes(i)){
   selected.push(i);
@@ -211,28 +226,19 @@ function endDrag(e){
  }
 }
 
-cells.forEach(cell=>{
- cell.addEventListener('pointerdown',e=>{
-  e.preventDefault();
-  startDrag(e);
- });
- cell.addEventListener('pointermove',e=>{
-  e.preventDefault();
-  dragMove(e);
- });
+boardEl.addEventListener('pointerdown',e=>{
+ e.preventDefault();
+ startDrag(e);
 });
-
-document.addEventListener('pointermove',e=>{
- if(dragging)dragMove(e);
-},{passive:false});
-
-document.addEventListener('pointerup',e=>{
- if(dragging)endDrag(e);
+boardEl.addEventListener('pointermove',e=>{
+ e.preventDefault();
+ dragMove(e);
 });
-
-document.addEventListener('pointercancel',e=>{
- if(dragging)endDrag(e);
+boardEl.addEventListener('pointerup',e=>{
+ e.preventDefault();
+ endDrag(e);
 });
+boardEl.addEventListener('pointercancel',e=>endDrag(e));
 newBtn.addEventListener('click',startRound);
 clearBtn.addEventListener('click',()=>clearSelection());
 document.getElementById('shuffle').addEventListener('click',shuffleBoard);
