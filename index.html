@@ -139,11 +139,38 @@ async function loadDictionary(){
   if(words.length<10000)throw new Error('Dictionary too small');
   dictionary.clear();
   words.forEach(w=>dictionary.add(w));
+
+  // Load the large local fallback shards as supplements too.
+  const shards=await Promise.all([1,2,3,4].map(n=>
+    fetch('./dictionary-fallback-'+n+'.txt',{cache:'no-store'}).then(r=>{
+      if(!r.ok)throw new Error('Fallback shard '+n+' HTTP '+r.status);
+      return r.text();
+    })
+  ));
+  shards.join('\n').split(/\s+/).forEach(w=>{
+    if(/^[A-Z]{3,20}$/.test(w))dictionary.add(w);
+  });
+
   dictionaryReady=true;
-  if(time>0)msgEl.textContent='Dictionary loaded: '+words.length.toLocaleString()+' words.';
+  if(time>0)msgEl.textContent='Dictionary loaded: '+dictionary.size.toLocaleString()+' words.';
  }catch(e){
+  try{
+   const shards=await Promise.all([1,2,3,4].map(n=>
+    fetch('./dictionary-fallback-'+n+'.txt',{cache:'no-store'}).then(r=>{
+      if(!r.ok)throw new Error('Fallback shard '+n+' HTTP '+r.status);
+      return r.text();
+    })
+   ));
+   dictionary.clear();
+   shards.join('\n').split(/\s+/).forEach(w=>{
+    if(/^[A-Z]{3,20}$/.test(w))dictionary.add(w);
+   });
+   if(dictionary.size<100000)throw new Error('Fallback dictionary too small');
+   if(time>0)msgEl.textContent='Fallback dictionary loaded: '+dictionary.size.toLocaleString()+' words.';
+  }catch(fallbackError){
+   if(time>0)msgEl.textContent='Using built-in word list.';
+  }
   dictionaryReady=true;
-  if(time>0)msgEl.textContent='Using built-in word list.';
  }
 }
 function submit(){
