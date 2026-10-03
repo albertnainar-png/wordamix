@@ -235,7 +235,8 @@ function addPathTo(i){
  const dr=r2-r1, dc=c2-c1;
  const steps=Math.max(Math.abs(dr),Math.abs(dc));
 
- // Add every crossed tile so fast swipes cannot skip a letter.
+ // Follow the finger through any combination of directions:
+ // up, down, left, right, and all diagonals.
  for(let s=1;s<=steps;s++){
   const r=r1+Math.round(dr*s/steps);
   const col=c1+Math.round(dc*s/steps);
