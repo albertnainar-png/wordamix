@@ -174,59 +174,64 @@ function cellAt(x,y){
  const el=document.elementFromPoint(x,y);
  return el&&el.closest('.cell');
 }
-let activePointer=null;
 let dragging=false;
+let activeTouchId=null;
 
 function cellFromPoint(x,y){
- const rect=boardEl.getBoundingClientRect();
- const gap=8;
- const size=(rect.width-gap*3)/4;
- const relX=x-rect.left;
- const relY=y-rect.top;
- if(relX<0||relY<0||relX>rect.width||relY>rect.height)return -1;
- let col=Math.floor(relX/(size+gap));
- let row=Math.floor(relY/(size+gap));
- if(col>3)col=3;
- if(row>3)row=3;
- const insideX=relX-col*(size+gap);
- const insideY=relY-row*(size+gap);
- if(insideX>size||insideY>size)return -1;
- return row*4+col;
+ const el=document.elementFromPoint(x,y);
+ if(!el)return -1;
+ const cell=el.closest('.cell');
+ if(!cell || !boardEl.contains(cell))return -1;
+ return Number(cell.dataset.i);
 }
 
-function beginSelection(e){
- if(time<=0)return;
- activePointer=e.pointerId;
- dragging=true;
- const i=cellFromPoint(e.clientX,e.clientY);
- if(i>=0){
-  selected=[i];
-  update();
- }
- if(boardEl.setPointerCapture){
-  try{boardEl.setPointerCapture(e.pointerId)}catch(_){}
- }
-}
-
-function continueSelection(e){
- if(!dragging||activePointer!==e.pointerId||time<=0)return;
- const i=cellFromPoint(e.clientX,e.clientY);
- if(i<0||selected.length===0)return;
+function addDraggedCell(i){
+ if(i<0 || selected.length===0)return;
  const last=selected[selected.length-1];
-
- if(i!==last && adjacent(last,i) && !selected.includes(i)){
+ if(i===last)return;
+ if(adjacent(last,i) && !selected.includes(i)){
   selected.push(i);
   update();
  }
 }
 
-function finishSelection(e){
- if(!dragging||activePointer!==e.pointerId)return;
- dragging=false;
- activePointer=null;
+function startTouch(e){
+ if(time<=0)return;
+ e.preventDefault();
+ const t=e.changedTouches[0];
+ activeTouchId=t.identifier;
+ dragging=true;
+ const i=cellFromPoint(t.clientX,t.clientY);
+ if(i>=0){
+  selected=[i];
+  update();
+ }
+}
 
- const word=selected.map(i=>letters[i]).join('');
- if(word.length>=3){
+function moveTouch(e){
+ if(!dragging)return;
+ e.preventDefault();
+ let touch=null;
+ for(const t of e.changedTouches){
+  if(t.identifier===activeTouchId){touch=t;break;}
+ }
+ if(!touch)return;
+ addDraggedCell(cellFromPoint(touch.clientX,touch.clientY));
+}
+
+function endTouch(e){
+ if(!dragging)return;
+ e.preventDefault();
+ let matched=false;
+ for(const t of e.changedTouches){
+  if(t.identifier===activeTouchId){matched=true;break;}
+ }
+ if(!matched)return;
+
+ dragging=false;
+ activeTouchId=null;
+
+ if(selected.length>=3){
   submit();
  }else{
   selected=[];
@@ -235,19 +240,35 @@ function finishSelection(e){
  }
 }
 
-boardEl.addEventListener('pointerdown',e=>{
+function startMouse(e){
+ if(time<=0)return;
  e.preventDefault();
- beginSelection(e);
-});
-boardEl.addEventListener('pointermove',e=>{
+ dragging=true;
+ const i=cellFromPoint(e.clientX,e.clientY);
+ if(i>=0){selected=[i];update();}
+}
+
+function moveMouse(e){
+ if(!dragging||time<=0)return;
  e.preventDefault();
- continueSelection(e);
-});
-boardEl.addEventListener('pointerup',e=>{
- e.preventDefault();
- finishSelection(e);
-});
-boardEl.addEventListener('pointercancel',finishSelection);
+ addDraggedCell(cellFromPoint(e.clientX,e.clientY));
+}
+
+function endMouse(){
+ if(!dragging)return;
+ dragging=false;
+ if(selected.length>=3)submit();
+ else{selected=[];update();}
+}
+
+boardEl.addEventListener('touchstart',startTouch,{passive:false});
+boardEl.addEventListener('touchmove',moveTouch,{passive:false});
+boardEl.addEventListener('touchend',endTouch,{passive:false});
+boardEl.addEventListener('touchcancel',endTouch,{passive:false});
+
+boardEl.addEventListener('mousedown',startMouse);
+document.addEventListener('mousemove',moveMouse);
+document.addEventListener('mouseup',endMouse);
 newBtn.addEventListener('click',startRound);
 clearBtn.addEventListener('click',()=>clearSelection());
 document.getElementById('shuffle').addEventListener('click',shuffleBoard);
