@@ -228,7 +228,7 @@ function startTouch(e){
  touchStartIndex=cellFromPoint(t.clientX,t.clientY);
  touchMoved=false;
  dragging=true;
- selected=[];
+ selected=touchStartIndex>=0 ? [touchStartIndex] : [];
  update();
 }
 
