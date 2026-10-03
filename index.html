@@ -17,7 +17,7 @@ button{font:inherit;color:#fff;background:#151922;border:1px solid #303747;borde
 .stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:16px 0}
 .stat{text-align:center;background:#151922;border:1px solid #252b36;border-radius:13px;padding:9px}
 .stat b{display:block;font-size:20px}.stat span{font-size:10px;color:#9ca3af}
-.board{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;max-width:430px;margin:0 auto;touch-action:none}
+.board{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;max-width:500px;margin:0 auto;touch-action:none}
 .cell{width:100%;aspect-ratio:1;border-radius:14px;background:#151922;border:1px solid #2b3240;font-size:clamp(28px,9vw,44px);font-weight:850;display:flex;align-items:center;justify-content:center;touch-action:none;user-select:none;-webkit-user-select:none;padding:0}
 .cell.selected{background:#304264;border-color:#9bb3ff;transform:scale(.94)}
 .word{text-align:center;height:38px;margin-top:12px;font-size:24px;font-weight:850;letter-spacing:.08em}
@@ -41,10 +41,11 @@ button{font:inherit;color:#fff;background:#151922;border:1px solid #303747;borde
   </div>
 
   <div id="board" class="board">
-    <button class="cell" data-i="0"></button><button class="cell" data-i="1"></button><button class="cell" data-i="2"></button><button class="cell" data-i="3"></button>
-    <button class="cell" data-i="4"></button><button class="cell" data-i="5"></button><button class="cell" data-i="6"></button><button class="cell" data-i="7"></button>
-    <button class="cell" data-i="8"></button><button class="cell" data-i="9"></button><button class="cell" data-i="10"></button><button class="cell" data-i="11"></button>
-    <button class="cell" data-i="12"></button><button class="cell" data-i="13"></button><button class="cell" data-i="14"></button><button class="cell" data-i="15"></button>
+    <button class="cell" data-i="0"></button><button class="cell" data-i="1"></button><button class="cell" data-i="2"></button><button class="cell" data-i="3"></button><button class="cell" data-i="4"></button>
+    <button class="cell" data-i="5"></button><button class="cell" data-i="6"></button><button class="cell" data-i="7"></button><button class="cell" data-i="8"></button><button class="cell" data-i="9"></button>
+    <button class="cell" data-i="10"></button><button class="cell" data-i="11"></button><button class="cell" data-i="12"></button><button class="cell" data-i="13"></button><button class="cell" data-i="14"></button>
+    <button class="cell" data-i="15"></button><button class="cell" data-i="16"></button><button class="cell" data-i="17"></button><button class="cell" data-i="18"></button><button class="cell" data-i="19"></button>
+    <button class="cell" data-i="20"></button><button class="cell" data-i="21"></button><button class="cell" data-i="22"></button><button class="cell" data-i="23"></button><button class="cell" data-i="24"></button>
   </div>
 
   <div id="word" class="word">&nbsp;</div>
@@ -72,10 +73,10 @@ const clearBtn=document.getElementById('clear');
 const dictionary=new Set(["ABLE","ABOUT","ABOVE","ACROSS","ACT","ACTION","ADD","AFTER","AGAIN","AGE","AIR","ALL","ALONG","ALSO","AM","AN","AND","ANIMAL","ANSWER","ANY","ARE","AREA","ARM","AROUND","ART","AS","ASK","AT","AWAY","BACK","BAD","BALL","BANK","BASE","BE","BEAR","BEAUTY","BECAUSE","BECOME","BED","BEEN","BEFORE","BEGIN","BEHIND","BEST","BETTER","BETWEEN","BIG","BIRD","BLACK","BLUE","BOAT","BODY","BOOK","BOTH","BOY","BREAK","BRING","BROTHER","BUILD","BUSINESS","BUT","BUY","BY","CALL","CAME","CAN","CAR","CARD","CARE","CARED","CARRY","CASE","CAT","CATS","CAUSE","CHANGE","CHILD","CHOICE","CITY","CLASS","CLEAN","CLEAR","CLOSE","CLOTHES","COLD","COME","COMMON","COMPLETE","COULD","COUNTRY","COURSE","COVER","CREATE","CROSS","CUP","CUT","DANCE","DARK","DATA","DAY","DEAL","DEAR","DEEP","DEVELOP","DID","DIFFERENT","DO","DOG","DOES","DOOR","DOWN","DRAW","DREAM","DRIVE","EACH","EAR","EARS","EARLY","EARTH","EAST","EASY","EAT","EATS","EDGE","EIGHT","END","ENOUGH","EVEN","EVER","EVERY","EXAMPLE","EYE","FACE","FACT","FAMILY","FAR","FAST","FATHER","FEEL","FEET","FEW","FIELD","FIND","FIRE","FIRST","FIVE","FOLLOW","FOOD","FOR","FORM","FOUND","FOUR","FREE","FRIEND","FROM","FRONT","FULL","GAME","GAMES","GATE","GATES","GET","GIRL","GIVE","GO","GOD","GOLD","GOOD","GOT","GRACE","GREAT","GREEN","GROUP","GROW","HAD","HALF","HAND","HAPPEN","HAPPY","HARD","HAS","HAVE","HE","HEAD","HEAR","HEARD","HEART","HEAT","HELP","HER","HERE","HIGH","HIM","HIS","HOME","HOMES","HOPE","HOUSE","HOW","HOWEVER","IDEA","IF","IMPORTANT","IN","INTO","IS","IT","KEEP","KIND","KNOW","LAND","LARGE","LAST","LATE","LATER","LEARN","LEAVE","LEFT","LIFE","LIGHT","LIKE","LINE","LIST","LITTLE","LIVE","LONG","LOOK","LOVE","LOW","MADE","MAKE","MAN","MANY","MAY","ME","MEAN","MEN","MIGHT","MIND","MINE","MINUTE","MORE","MORNING","MOST","MOVE","MUCH","MUST","MY","NAME","NEAR","NEED","NEVER","NEW","NEXT","NIGHT","NO","NOT","NOTHING","NOW","NUMBER","OF","OFF","OFTEN","OLD","ON","ONCE","ONE","ONLY","OPEN","OR","OTHER","OUR","OUT","OVER","OWN","PART","PEOPLE","PLACE","PLAN","PLANE","PLANET","PLAY","PLAYER","POINT","POWER","PRAY","PRAYER","PRESENT","PROBLEM","PUT","QUESTION","RAIN","READ","READY","REAL","RED","REMEMBER","RIGHT","RING","RINGS","ROAD","ROAR","ROCK","ROOM","RUN","SAME","SAND","SANE","SAVE","SAY","SCHOOL","SEA","SEAT","SECOND","SEE","SEEM","SET","SEVEN","SEVERAL","SHALL","SHE","SIDE","SIMPLE","SINCE","SING","SIX","SMALL","SO","SOAR","SOME","SONG","SONGS","SOON","SORT","SOUND","SOUTH","START","STAR","STARE","STATE","STAY","STEP","STILL","STONE","STOP","STORE","STORM","STORY","STREET","STRONG","SUCH","SURE","TAKE","TALK","TEAM","TEAMS","TELL","TEN","THAN","THANK","THAT","THE","THEIR","THEM","THEN","THERE","THESE","THEY","THING","THINK","THIRD","THIS","THOSE","THOUGH","THREE","THROUGH","TIME","TIMES","TO","TODAY","TOGETHER","TOLD","TOP","TOWN","TREE","TRY","TURN","TWO","UNDER","UNTIL","UP","UPON","US","USE","VERY","WALK","WANT","WAR","WATER","WAY","WE","WEEK","WELL","WERE","WHAT","WHEN","WHERE","WHICH","WHILE","WHO","WHOLE","WHY","WILL","WITH","WOMAN","WORD","WORDS","WORK","WORKS","WORLD","WOULD","WRITE","YEAR","YES","YOU","YOUR""ACCOUNTABILITY","ACHIEVEMENT","ACKNOWLEDGEMENT","ADMINISTRATION","CHARACTERIZATION","COMMUNICATION","COMPATIBILITY","CONCENTRATION","CONGRATULATIONS","CONSIDERATION","CONSTRUCTION","CONTINUOUSLY","CONTRIBUTION","COORDINATION","DETERMINATION","DIFFERENTIATION","ENTERTAINMENT","ENVIRONMENTAL","ESTABLISHMENT","EXTRAORDINARY","GENERALIZATION","IMPLEMENTATION","INDEPENDENCE","INFORMATION","INFRASTRUCTURE","INTERPRETATION","INVESTIGATION","KNOWLEDGE","MANAGEMENT","MEASUREMENT","ORGANIZATION","PARTICIPATION","PERFORMANCE","PERSONALIZATION","POSSIBILITY","PRESENTATION","PRODUCTIVITY","PROFESSIONALISM","RECOMMENDATION","REPRESENTATION","RESPONSIBILITY","SIGNIFICANTLY","SIMPLIFICATION","SPECIALIZATION","TECHNOLOGICAL","TRANSFORMATION","UNDERSTANDING"]);
 
 const layouts=[
-['S','T','A','R','E','D','O','R','N','G','I','L','M','P','C','E'],
-['W','O','R','D','A','M','I','X','S','T','E','P','L','A','Y','N'],
-['C','O','D','E','S','T','A','R','G','A','M','E','P','L','A','Y'],
-['P','L','A','N','E','T','O','W','E','R','S','T','A','R','C','O']
+['S','T','A','R','E','D','O','R','N','G','I','L','M','P','C','E','A','T','S','N','D','E','R','O','W'],
+['W','O','R','D','A','M','I','X','S','T','E','P','L','A','Y','N','G','A','M','E','C','O','D','E'],
+['C','O','D','E','S','T','A','R','G','A','M','E','P','L','A','Y','R','E','S','T','W','O','R','D'],
+['P','L','A','N','E','T','O','W','E','R','S','T','A','R','C','O','M','M','U','N','I','C','A','T']
 ];
 
 let letters=[];
@@ -86,7 +87,7 @@ let pointerDown=false,swiping=false;
 let shuffles=3;
 
 function adjacent(a,b){
- const ar=Math.floor(a/4),ac=a%4,br=Math.floor(b/4),bc=b%4;
+ const ar=Math.floor(a/5),ac=a%5,br=Math.floor(b/5),bc=b%5;
  return Math.max(Math.abs(ar-br),Math.abs(ac-bc))===1;
 }
 function update(){
