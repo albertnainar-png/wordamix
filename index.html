@@ -194,6 +194,8 @@ function cellAt(x,y){
 }
 let dragging=false;
 let activeTouchId=null;
+let touchStartIndex=-1;
+let touchMoved=false;
 
 function cellFromPoint(x,y){
  const el=document.elementFromPoint(x,y);
@@ -204,7 +206,12 @@ function cellFromPoint(x,y){
 }
 
 function addDraggedCell(i){
- if(i<0 || selected.length===0)return;
+ if(i<0)return;
+ if(selected.length===0){
+  selected=[i];
+  update();
+  return;
+ }
  const last=selected[selected.length-1];
  if(i===last)return;
  if(adjacent(last,i) && !selected.includes(i)){
@@ -218,12 +225,11 @@ function startTouch(e){
  e.preventDefault();
  const t=e.changedTouches[0];
  activeTouchId=t.identifier;
+ touchStartIndex=cellFromPoint(t.clientX,t.clientY);
+ touchMoved=false;
  dragging=true;
- const i=cellFromPoint(t.clientX,t.clientY);
- if(i>=0){
-  selected=[i];
-  update();
- }
+ selected=[];
+ update();
 }
 
 function moveTouch(e){
@@ -234,7 +240,9 @@ function moveTouch(e){
   if(t.identifier===activeTouchId){touch=t;break;}
  }
  if(!touch)return;
- addDraggedCell(cellFromPoint(touch.clientX,touch.clientY));
+ const i=cellFromPoint(touch.clientX,touch.clientY);
+ if(i>=0 && i!==touchStartIndex)touchMoved=true;
+ if(touchMoved)addDraggedCell(i);
 }
 
 function endTouch(e){
@@ -249,13 +257,17 @@ function endTouch(e){
  dragging=false;
  activeTouchId=null;
 
- if(selected.length>=3){
+ if(!touchMoved && touchStartIndex>=0){
+  choose(touchStartIndex);
+ }else if(selected.length>=3){
   submit();
  }else{
   selected=[];
   update();
-  msgEl.textContent='Drag across at least 3 letters to make a word.';
+  msgEl.textContent='Select at least 3 adjacent letters.';
  }
+ touchStartIndex=-1;
+ touchMoved=false;
 }
 
 function startMouse(e){
