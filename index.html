@@ -174,60 +174,63 @@ function cellAt(x,y){
  return el&&el.closest('.cell');
 }
 let activePointer=null;
+let dragging=false;
 
-function beginDrag(e,cell){
+function startDrag(e){
  if(time<=0)return;
  activePointer=e.pointerId;
- swiping=false;
- cell.setPointerCapture?.(e.pointerId);
- choose(Number(cell.dataset.i));
+ dragging=true;
+ selected=[Number(e.target.dataset.i)];
+ boardEl.setPointerCapture?.(e.pointerId);
+ update();
 }
 
 function dragMove(e){
- if(activePointer===null||time<=0)return;
+ if(!dragging||activePointer!==e.pointerId||time<=0)return;
  const c=cellAt(e.clientX,e.clientY);
  if(!c)return;
  const i=Number(c.dataset.i);
- if(selected.length && i!==selected[selected.length-1]){
-  if(adjacent(selected[selected.length-1],i) && !selected.includes(i)){
-   swiping=true;
-   selected.push(i);
-   update();
-  }
+ const last=selected[selected.length-1];
+ if(i!==last && adjacent(last,i) && !selected.includes(i)){
+  selected.push(i);
+  update();
  }
 }
 
-function finishDrag(e){
- if(activePointer===null)return;
- if(e && e.pointerId!==undefined && e.pointerId!==activePointer)return;
- const wasSwipe=swiping;
+function endDrag(e){
+ if(!dragging||activePointer!==e.pointerId)return;
+ dragging=false;
  activePointer=null;
- if(wasSwipe){
+ if(selected.length>=3){
   submit();
+ }else{
+  selected=[];
+  update();
+  msgEl.textContent='Drag across at least 3 letters to make a word.';
  }
- swiping=false;
 }
 
 cells.forEach(cell=>{
  cell.addEventListener('pointerdown',e=>{
   e.preventDefault();
-  beginDrag(e,cell);
+  startDrag(e);
  });
  cell.addEventListener('pointermove',e=>{
   e.preventDefault();
   dragMove(e);
  });
- cell.addEventListener('pointerup',e=>{
-  e.preventDefault();
-  finishDrag(e);
- });
- cell.addEventListener('pointercancel',e=>finishDrag(e));
 });
-document.addEventListener('pointerup',()=>{pointerDown=false;});
-newBtn.addEventListener('click',startRound);
-clearBtn.addEventListener('click',()=>clearSelection());
-startRound();
-})();
-</script>
-</body>
-</html>
+
+document.addEventListener('pointermove',e=>{
+ if(dragging)dragMove(e);
+},{passive:false});
+
+document.addEventListener('pointerup',e=>{
+ if(dragging)endDrag(e);
+});
+
+document.addEventListener('pointercancel',e=>{
+ if(dragging)endDrag(e);
+});
+
+>
