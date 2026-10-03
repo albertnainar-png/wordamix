@@ -82,7 +82,8 @@ const layouts=[
 let letters=[];
 let selected=[];
 let found=new Set();
-let score=0,combo=0,time=60,timer=null;\nlet dictionaryReady=false;
+let score=0,combo=0,time=60,timer=null;
+let dictionaryReady=false;
 let pointerDown=false,swiping=false;
 let shuffles=3;
 
@@ -129,7 +130,23 @@ function showFound(){
 function clearSelection(message='Selection cleared.'){
  selected=[];swiping=false;update();msgEl.textContent=message;
 }
-async function loadDictionary(){\n try{\n  const res=await fetch('./dictionary.txt',{cache:'no-store'});\n  if(!res.ok)throw new Error('Dictionary HTTP '+res.status);\n  const text=await res.text();\n  const words=text.split(/\\s+/).map(w=>w.trim()).filter(w=>/^[A-Z]{3,20}$/.test(w));\n  if(words.length<10000)throw new Error('Dictionary too small');\n  dictionary.clear();\n  words.forEach(w=>dictionary.add(w));\n  dictionaryReady=true;\n  if(time>0)msgEl.textContent='Dictionary loaded: '+words.length.toLocaleString()+' words.';\n }catch(e){\n  dictionaryReady=true;\n  if(time>0)msgEl.textContent='Using built-in word list.';\n }\n}\nfunction submit(){
+async function loadDictionary(){
+ try{
+  const res=await fetch('./dictionary.txt',{cache:'no-store'});
+  if(!res.ok)throw new Error('Dictionary HTTP '+res.status);
+  const text=await res.text();
+  const words=text.split(/\s+/).map(w=>w.trim()).filter(w=>/^[A-Z]{3,20}$/.test(w));
+  if(words.length<10000)throw new Error('Dictionary too small');
+  dictionary.clear();
+  words.forEach(w=>dictionary.add(w));
+  dictionaryReady=true;
+  if(time>0)msgEl.textContent='Dictionary loaded: '+words.length.toLocaleString()+' words.';
+ }catch(e){
+  dictionaryReady=true;
+  if(time>0)msgEl.textContent='Using built-in word list.';
+ }
+}
+function submit(){
  const w=selected.map(i=>letters[i]).join('');
  selected=[];update();
  if(w.length<3){msgEl.textContent='Words need at least 3 letters.';return;}
