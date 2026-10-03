@@ -196,6 +196,7 @@ let dragging=false;
 let activeTouchId=null;
 let touchStartIndex=-1;
 let touchMoved=false;
+let lastTouchIndex=-1;
 
 function cellFromPoint(x,y){
  const el=document.elementFromPoint(x,y);
@@ -220,6 +221,29 @@ function addDraggedCell(i){
  }
 }
 
+function addPathTo(i){
+ if(i<0)return;
+ if(lastTouchIndex<0){
+  lastTouchIndex=i;
+  addDraggedCell(i);
+  return;
+ }
+ if(i===lastTouchIndex)return;
+
+ const r1=Math.floor(lastTouchIndex/5), c1=lastTouchIndex%5;
+ const r2=Math.floor(i/5), c2=i%5;
+ const dr=r2-r1, dc=c2-c1;
+ const steps=Math.max(Math.abs(dr),Math.abs(dc));
+
+ // Add every crossed tile so fast swipes cannot skip a letter.
+ for(let s=1;s<=steps;s++){
+  const r=r1+Math.round(dr*s/steps);
+  const col=c1+Math.round(dc*s/steps);
+  addDraggedCell(r*5+col);
+ }
+ lastTouchIndex=i;
+}
+
 function startTouch(e){
  if(time<=0)return;
  e.preventDefault();
@@ -228,6 +252,7 @@ function startTouch(e){
  touchStartIndex=cellFromPoint(t.clientX,t.clientY);
  touchMoved=false;
  dragging=true;
+ lastTouchIndex=touchStartIndex;
  selected=touchStartIndex>=0 ? [touchStartIndex] : [];
  update();
 }
@@ -242,7 +267,7 @@ function moveTouch(e){
  if(!touch)return;
  const i=cellFromPoint(touch.clientX,touch.clientY);
  if(i>=0 && i!==touchStartIndex)touchMoved=true;
- if(touchMoved)addDraggedCell(i);
+ if(touchMoved)addPathTo(i);
 }
 
 function endTouch(e){
@@ -267,6 +292,7 @@ function endTouch(e){
   msgEl.textContent='Select at least 3 adjacent letters.';
  }
  touchStartIndex=-1;
+ lastTouchIndex=-1;
  touchMoved=false;
 }
 
@@ -275,13 +301,15 @@ function startMouse(e){
  e.preventDefault();
  dragging=true;
  const i=cellFromPoint(e.clientX,e.clientY);
+ lastTouchIndex=i;
  if(i>=0){selected=[i];update();}
 }
 
 function moveMouse(e){
  if(!dragging||time<=0)return;
  e.preventDefault();
- addDraggedCell(cellFromPoint(e.clientX,e.clientY));
+ const i=cellFromPoint(e.clientX,e.clientY);
+ if(i>=0)addPathTo(i);
 }
 
 function endMouse(){
@@ -289,6 +317,7 @@ function endMouse(){
  dragging=false;
  if(selected.length>=3)submit();
  else{selected=[];update();}
+ lastTouchIndex=-1;
 }
 
 boardEl.addEventListener('touchstart',startTouch,{passive:false});
