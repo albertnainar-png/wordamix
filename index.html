@@ -194,16 +194,18 @@ function cellAt(x,y){
 }
 let dragging=false;
 let activeTouchId=null;
-let touchStartIndex=-1;
-let touchMoved=false;
 let lastTouchIndex=-1;
 
 function cellFromPoint(x,y){
- const el=document.elementFromPoint(x,y);
- if(!el)return -1;
- const cell=el.closest('.cell');
- if(!cell || !boardEl.contains(cell))return -1;
- return Number(cell.dataset.i);
+ let best=-1;
+ let bestDist=Infinity;
+ cells.forEach((cell,i)=>{
+  const r=cell.getBoundingClientRect();
+  if(x>=r.left && x<=r.right && y>=r.top && y<=r.bottom){
+   best=i;
+  }
+ });
+ return best;
 }
 
 function addDraggedCell(i){
@@ -221,104 +223,81 @@ function addDraggedCell(i){
  }
 }
 
-function addPathTo(i){
- if(i<0)return;
- if(lastTouchIndex<0){
-  lastTouchIndex=i;
-  addDraggedCell(i);
-  return;
- }
- if(i===lastTouchIndex)return;
-
- const r1=Math.floor(lastTouchIndex/5), c1=lastTouchIndex%5;
- const r2=Math.floor(i/5), c2=i%5;
- const dr=r2-r1, dc=c2-c1;
- const steps=Math.max(Math.abs(dr),Math.abs(dc));
-
- // Follow the finger through any combination of directions:
- // up, down, left, right, and all diagonals.
- for(let s=1;s<=steps;s++){
-  const r=r1+Math.round(dr*s/steps);
-  const col=c1+Math.round(dc*s/steps);
-  addDraggedCell(r*5+col);
- }
- lastTouchIndex=i;
-}
-
 function startTouch(e){
  if(time<=0)return;
  e.preventDefault();
  const t=e.changedTouches[0];
  activeTouchId=t.identifier;
- touchStartIndex=cellFromPoint(t.clientX,t.clientY);
- touchMoved=false;
  dragging=true;
- lastTouchIndex=touchStartIndex;
- selected=touchStartIndex>=0 ? [touchStartIndex] : [];
+ lastTouchIndex=cellFromPoint(t.clientX,t.clientY);
+ selected=lastTouchIndex>=0 ? [lastTouchIndex] : [];
  update();
 }
 
 function moveTouch(e){
- if(!dragging)return;
+ if(!dragging || time<=0)return;
  e.preventDefault();
- let touch=null;
- for(const t of e.changedTouches){
-  if(t.identifier===activeTouchId){touch=t;break;}
+
+ let t=null;
+ for(const touch of e.touches){
+  if(touch.identifier===activeTouchId){t=touch;break;}
  }
- if(!touch)return;
- const i=cellFromPoint(touch.clientX,touch.clientY);
- if(i>=0 && i!==touchStartIndex)touchMoved=true;
- if(touchMoved)addPathTo(i);
+ if(!t)return;
+
+ const i=cellFromPoint(t.clientX,t.clientY);
+ if(i>=0){
+  // Every move is evaluated independently, so the player can
+  // turn in any direction at any point in the word.
+  addDraggedCell(i);
+  lastTouchIndex=i;
+ }
 }
 
 function endTouch(e){
  if(!dragging)return;
  e.preventDefault();
- let matched=false;
+
+ let foundTouch=false;
  for(const t of e.changedTouches){
-  if(t.identifier===activeTouchId){matched=true;break;}
+  if(t.identifier===activeTouchId){foundTouch=true;break;}
  }
- if(!matched)return;
+ if(!foundTouch)return;
 
  dragging=false;
  activeTouchId=null;
+ lastTouchIndex=-1;
 
- if(!touchMoved && touchStartIndex>=0){
-  choose(touchStartIndex);
- }else if(selected.length>=3){
+ if(selected.length>=3){
   submit();
  }else{
   selected=[];
   update();
   msgEl.textContent='Select at least 3 adjacent letters.';
  }
- touchStartIndex=-1;
- lastTouchIndex=-1;
- touchMoved=false;
 }
 
 function startMouse(e){
  if(time<=0)return;
  e.preventDefault();
  dragging=true;
- const i=cellFromPoint(e.clientX,e.clientY);
- lastTouchIndex=i;
- if(i>=0){selected=[i];update();}
+ lastTouchIndex=cellFromPoint(e.clientX,e.clientY);
+ selected=lastTouchIndex>=0 ? [lastTouchIndex] : [];
+ update();
 }
 
 function moveMouse(e){
- if(!dragging||time<=0)return;
+ if(!dragging || time<=0)return;
  e.preventDefault();
  const i=cellFromPoint(e.clientX,e.clientY);
- if(i>=0)addPathTo(i);
+ if(i>=0)addDraggedCell(i);
 }
 
 function endMouse(){
  if(!dragging)return;
  dragging=false;
+ lastTouchIndex=-1;
  if(selected.length>=3)submit();
  else{selected=[];update();}
- lastTouchIndex=-1;
 }
 
 boardEl.addEventListener('touchstart',startTouch,{passive:false});
