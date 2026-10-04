@@ -84,7 +84,7 @@ let selected=[];
 let found=new Set();
 let score=0,combo=0,time=60,timer=null;
 let dictionaryReady=false;
-let pointerDown=false,swiping=false;
+let pointerActive=false,swiping=false;
 let shuffles=3;
 
 function adjacent(a,b){
@@ -201,7 +201,7 @@ function choose(i){
 function startRound(){
  clearInterval(timer);
  letters=[...layouts[Math.floor(Math.random()*layouts.length)]];
- selected=[];found=new Set();score=0;combo=0;time=60;pointerDown=false;swiping=false;shuffles=3;
+ selected=[];found=new Set();score=0;combo=0;time=60;pointerActive=false;swiping=false;shuffles=3;
  cells.forEach((c,i)=>{c.textContent=letters[i];c.disabled=false});
  msgEl.textContent='Find a word of 3+ letters.';
  update();showFound();updateShuffleButton();
