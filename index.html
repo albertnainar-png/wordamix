@@ -220,121 +220,66 @@ function cellAt(x,y){
  return el&&el.closest('.cell');
 }
 let dragging=false;
-let activeTouchId=null;
-let lastTouchIndex=-1;
+let activePointerId=null;
+let lastIndex=-1;
 
 function cellFromPoint(x,y){
- let best=-1;
- let bestDist=Infinity;
- cells.forEach((cell,i)=>{
-  const r=cell.getBoundingClientRect();
-  if(x>=r.left && x<=r.right && y>=r.top && y<=r.bottom){
-   best=i;
-  }
- });
- return best;
+ for(let i=0;i<cells.length;i++){
+  const r=cells[i].getBoundingClientRect();
+  if(x>=r.left && x<=r.right && y>=r.top && y<=r.bottom)return i;
+ }
+ return -1;
 }
 
-function addDraggedCell(i){
+function addCell(i){
  if(i<0)return;
  if(selected.length===0){
-  selected=[i];
-  update();
-  return;
+  selected=[i]; update(); return;
  }
  const last=selected[selected.length-1];
  if(i===last)return;
  if(adjacent(last,i) && !selected.includes(i)){
-  selected.push(i);
-  update();
+  selected.push(i); update();
  }
 }
 
-function startTouch(e){
+function pointerDown(e){
  if(time<=0)return;
- e.preventDefault();
- const t=e.changedTouches[0];
- activeTouchId=t.identifier;
- dragging=true;
- lastTouchIndex=cellFromPoint(t.clientX,t.clientY);
- selected=lastTouchIndex>=0 ? [lastTouchIndex] : [];
- update();
-}
-
-function moveTouch(e){
- if(!dragging || time<=0)return;
- e.preventDefault();
-
- let t=null;
- for(const touch of e.touches){
-  if(touch.identifier===activeTouchId){t=touch;break;}
- }
- if(!t)return;
-
- const i=cellFromPoint(t.clientX,t.clientY);
- if(i>=0){
-  // Every move is evaluated independently, so the player can
-  // turn in any direction at any point in the word.
-  addDraggedCell(i);
-  lastTouchIndex=i;
- }
-}
-
-function endTouch(e){
- if(!dragging)return;
- e.preventDefault();
-
- let foundTouch=false;
- for(const t of e.changedTouches){
-  if(t.identifier===activeTouchId){foundTouch=true;break;}
- }
- if(!foundTouch)return;
-
- dragging=false;
- activeTouchId=null;
- lastTouchIndex=-1;
-
- if(selected.length>=3){
-  submit();
- }else{
-  selected=[];
-  update();
-  msgEl.textContent='Select at least 3 adjacent letters.';
- }
-}
-
-function startMouse(e){
- if(time<=0)return;
- e.preventDefault();
- dragging=true;
- lastTouchIndex=cellFromPoint(e.clientX,e.clientY);
- selected=lastTouchIndex>=0 ? [lastTouchIndex] : [];
- update();
-}
-
-function moveMouse(e){
- if(!dragging || time<=0)return;
  e.preventDefault();
  const i=cellFromPoint(e.clientX,e.clientY);
- if(i>=0)addDraggedCell(i);
+ if(i<0)return;
+ dragging=true;
+ activePointerId=e.pointerId;
+ lastIndex=i;
+ selected=[i];
+ update();
+ try{boardEl.setPointerCapture(e.pointerId)}catch(_){}
 }
 
-function endMouse(){
- if(!dragging)return;
+function pointerMove(e){
+ if(!dragging || e.pointerId!==activePointerId)return;
+ e.preventDefault();
+ const i=cellFromPoint(e.clientX,e.clientY);
+ if(i<0 || i===lastIndex)return;
+ addCell(i);
+ lastIndex=i;
+}
+
+function pointerUp(e){
+ if(!dragging || e.pointerId!==activePointerId)return;
+ e.preventDefault();
  dragging=false;
- lastTouchIndex=-1;
+ try{boardEl.releasePointerCapture(e.pointerId)}catch(_){}
+ activePointerId=null;
+ lastIndex=-1;
  if(selected.length>=3)submit();
- else{selected=[];update();}
+ else{selected=[];update();msgEl.textContent='Select at least 3 adjacent letters.';}
 }
 
-boardEl.addEventListener('touchstart',startTouch,{passive:false});
-boardEl.addEventListener('touchmove',moveTouch,{passive:false});
-boardEl.addEventListener('touchend',endTouch,{passive:false});
-boardEl.addEventListener('touchcancel',endTouch,{passive:false});
-
-boardEl.addEventListener('mousedown',startMouse);
-document.addEventListener('mousemove',moveMouse);
-document.addEventListener('mouseup',endMouse);
+boardEl.addEventListener('pointerdown',pointerDown,{passive:false});
+boardEl.addEventListener('pointermove',pointerMove,{passive:false});
+boardEl.addEventListener('pointerup',pointerUp,{passive:false});
+boardEl.addEventListener('pointercancel',pointerUp,{passive:false});
 newBtn.addEventListener('click',startRound);
 clearBtn.addEventListener('click',()=>clearSelection());
 document.getElementById('shuffle').addEventListener('click',shuffleBoard);
