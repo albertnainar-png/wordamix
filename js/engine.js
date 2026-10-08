@@ -70,16 +70,14 @@ function placeWord(grid,word,rnd,pref=0){
 const RARE='JKVWXYZ';
 const DIFFICULTY={
   easy:{id:'easy',label:'EASY',mult:1,lens:[5,5,4,4,4,4],pool:[4,5],straight:1,wf:k=>VOWELS.includes(k)?1.15:RARE.includes(k)?.4:1,attempts:80,budget:220,minWords:100,minCover:23,vmin:8,vmax:13,ok:m=>m.s5>=.88&&m.six<=50&&m.common>=.47,rank:(m,ev)=>m.s5*300+m.common*150+m.commonN*.4-m.six*.5},
-  normal:{id:'normal',label:'NORMAL',mult:1,lens:[6,5,5,4,4,4],pool:[4,7],straight:0,wf:null,attempts:80,budget:160,minWords:55,minCover:22,vmin:7,vmax:13,vmin2:8,ok:null,rank:null},
-  hard:{id:'hard',label:'HARD',mult:1.25,lens:[8,7,6,6,5],pool:[5,8],straight:-1,wf:k=>VOWELS.includes(k)?.92:RARE.includes(k)?1.6:1,attempts:150,budget:400,minWords:40,minCover:21,vmin:6,vmax:12,ok:m=>m.six>=230&&m.s4<=.4&&m.maxLen>=9,rank:(m,ev)=>m.six*3+m.maxLen*6-m.s4*60-m.common*20},
-  expert:{id:'expert',label:'EXPERT',mult:1.5,lens:[9,8,7,7,6],pool:[6,9],straight:-1,wf:k=>VOWELS.includes(k)?.88:RARE.includes(k)?2:1,attempts:200,budget:500,minWords:30,minCover:20,vmin:6,vmax:12,ok:m=>m.six>=360&&m.s4<=.36&&m.maxLen>=10&&m.seven>=190,rank:(m,ev)=>m.six*3+m.maxLen*8-m.s4*80-m.common*60}};
-const DIFFICULTY_IDS=['easy','normal','hard','expert'];
+  hard:{id:'hard',label:'HARD',mult:1.25,lens:[8,7,6,6,5],pool:[5,8],straight:-1,wf:k=>VOWELS.includes(k)?.92:RARE.includes(k)?1.6:1,attempts:150,budget:400,minWords:40,minCover:21,vmin:6,vmax:12,ok:m=>m.six>=230&&m.s4<=.4&&m.maxLen>=9,rank:(m,ev)=>m.six*3+m.maxLen*6-m.s4*60-m.common*20}};
+const DIFFICULTY_IDS=['easy','hard'];
 const isDifficulty=x=>typeof x==='string'&&DIFFICULTY_IDS.includes(x);
 function metrics(ev,dict){let s4=0,s5=0,six=0,com=0,max=0,sev=0,comLong=0;
   ev.sol.forEach((p,w)=>{const L=w.length;if(L<=4)s4++;if(L<=5)s5++;if(L>=6)six++;if(L>=7)sev++;if(L>max)max=L;if(dict.commonSet&&dict.commonSet.has(w)){com++;if(L>=5)comLong++;}});
   const n=Math.max(1,ev.words);return{words:ev.words,s4:s4/n,s5:s5/n,six,seven:sev,maxLen:max,common:dict.commonSet?com/n:1,commonN:com,commonLong:comLong};}
 function generate(dict,rnd=Math.random,budgetMs=null,custom=null,diffId='normal'){
-  const D=DIFFICULTY[diffId]||DIFFICULTY.normal;if(budgetMs===null||budgetMs===undefined)budgetMs=D.budget;
+  const D=DIFFICULTY[diffId]||DIFFICULTY.easy;if(budgetMs===null||budgetMs===undefined)budgetMs=D.budget;
   const small=!dict.full,minWords=small?18:D.minWords,minCover=small?20:D.minCover;
   const pool=custom||(small?dict.arr.filter(w=>w.length>=4&&w.length<=6&&!/Q/.test(w)):dict.targets(D.pool[0],D.pool[1]));
   const t0=Date.now();let best=null;
@@ -92,7 +90,7 @@ function generate(dict,rnd=Math.random,budgetMs=null,custom=null,diffId='normal'
     for(let i=0;i<N;i++)if(grid[i]===null){const l=pickLetter(rnd,counts,D.wf);grid[i]=l;counts[l]=(counts[l]||0)+1;}
     const ev=evaluate(grid,dict);
     if(ev.vowels<D.vmin||ev.vowels>D.vmax)continue;
-    const m=metrics(ev,dict),valid=diffId==='normal'||(ev.cover>=18&&ev.words>=25);
+    const m=metrics(ev,dict),valid=diffId==='easy'||(ev.cover>=18&&ev.words>=25);
     const cand={letters:grid,targets,...ev,metrics:m,difficulty:diffId,valid,rank:D.rank?D.rank(m,ev):ev.score,ok:false};
     if(!best||(valid&&(!best.valid||cand.rank>best.rank)))best=cand;
     const want=ev.words>=minWords&&ev.cover>=minCover&&ev.vowels>=(D.vmin2||D.vmin)&&(small||custom||!D.ok||D.ok(m));
