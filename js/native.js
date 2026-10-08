@@ -1,0 +1,1 @@
+(function(){'use strict';const C=window.Capacitor;if(!C||!C.isNativePlatform||!C.isNativePlatform())return;const App=C.Plugins&&C.Plugins.App;if(!App)return;const G=window.__wordamix;App.addListener('backButton',()=>{if(window.__mp&&window.__mp.back&&window.__mp.back())return;if(G.state==='PLAYING')return G.pause();if(G.state==='PAUSED')return G.resume();G.home();});})();

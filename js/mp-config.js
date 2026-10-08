@@ -1,0 +1,1 @@
+window.WORDAMIX_MP={server:'',web:''};
