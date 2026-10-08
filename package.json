@@ -1,0 +1,1 @@
+{"name":"wordamix","version":"1.0.0","private":true,"description":"Wordamix word game with Difficulty Mode and multiplayer","scripts":{"test":"node tests/engine.test.js && node tests/multiplayer.test.js && node tests/difficulty.test.js && node tests/multiplayer-difficulty.test.js","server":"node server/server.js"},"dependencies":{"ws":"^8.22.0"}}
