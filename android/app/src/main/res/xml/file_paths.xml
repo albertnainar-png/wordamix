@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Wordamix shares plain text only; no files are exposed. Cache-only path kept so the Capacitor FileProvider declaration stays valid. -->
+<paths xmlns:android="http://schemas.android.com/apk/res/android">
+    <cache-path name="wordamix_cache" path="." />
+</paths>

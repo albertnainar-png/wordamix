@@ -1,25 +1,16 @@
-name: Wordamix Selection Matrix
+name: Wordamix Tests
 
 on:
   push:
-    paths:
-      - 'index.html'
-      - 'js/engine.js'
-      - 'tests/selection.test.js'
-      - '.github/workflows/selection-test.yml'
   pull_request:
-    paths:
-      - 'index.html'
-      - 'js/engine.js'
-      - 'tests/selection.test.js'
-      - '.github/workflows/selection-test.yml'
 
 jobs:
-  selection:
+  test:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-      - run: node tests/selection.test.js
+      - run: npm install --omit=optional --no-audit --no-fund
+      - run: npm test

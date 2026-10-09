@@ -13,6 +13,7 @@ class DictionaryManager{
   _merge(words){words.forEach(w=>this.set.add(w));this.arr=[...this.set].sort();}
   async _fetch(url){const r=await fetch(url,{cache:'force-cache'});if(!r.ok)throw 0;
     return (await r.text()).split(/\s+/).map(s=>s.trim().toUpperCase()).filter(s=>/^[A-Z]{3,15}$/.test(s));}
+  /** commonUrl: ~45k everyday words (also used as board target pool). largeUrl: ~270k accepted words, merged in background. */
   async load(commonUrl,largeUrl){
     try{const w=await this._fetch(commonUrl);if(w.length<5000)throw 0;this._merge(w);this.commonSet=new Set(w);this.common=w.filter(x=>x.length>=4&&x.length<=7&&!/Q/.test(x)).sort();this.full=true;this.status='full';}
     catch(e){this.status='lite';return this.status;}
@@ -24,6 +25,8 @@ class DictionaryManager{
   hasPrefix(p){const i=this.lower(p);return i<this.arr.length&&this.arr[i].startsWith(p);}
   targets(min,max){const base=this.commonSet?(this._cl||(this._cl=[...this.commonSet].sort())):(this.common||this.arr);return base.filter(w=>w.length>=min&&w.length<=max&&!/Q/.test(w));}
 }
+
+/* ---------- BoardManager ---------- */
 const NB=[];for(let i=0;i<N;i++){NB[i]=[];const r=(i/SIZE)|0,c=i%SIZE;
   for(let dr=-1;dr<=1;dr++)for(let dc=-1;dc<=1;dc++){if(!dr&&!dc)continue;const rr=r+dr,cc=c+dc;if(rr>=0&&rr<SIZE&&cc>=0&&cc<SIZE)NB[i].push(rr*SIZE+cc);}}
 const adjacent=(a,b)=>NB[a].indexOf(b)>=0;
@@ -31,6 +34,7 @@ const WEIGHTS={E:12,A:9,I:9,O:8,N:7,R:7,T:7,S:6,L:5,D:4,U:4,C:3,M:3,H:3,G:2,P:3,
 const VOWELS='AEIOU';
 function pickLetter(rnd,counts,f){const keys=Object.keys(WEIGHTS);let tot=0;const ws=keys.map(k=>{const w=counts[k]>=(k==='E'?4:3)?0:WEIGHTS[k]*(f?f(k):1);tot+=w;return w;});
   let x=rnd()*tot;for(let i=0;i<keys.length;i++){x-=ws[i];if(x<=0)return keys[i];}return 'E';}
+/** Exact path validation: letters match, adjacent, no repeats, in dictionary. */
 function validatePath(letters,path,dict){
   if(!path||path.length<MIN_LEN)return{ok:false,reason:'short'};
   const seen=new Set();let word='';
@@ -40,13 +44,16 @@ function validatePath(letters,path,dict){
     if(k&&!adjacent(path[k-1],t))return{ok:false,reason:'notadjacent'};
     word+=letters[t];}
   return dict.has(word)?{ok:true,word}:{ok:false,reason:'notword',word};}
+/** Find any path for a word (used by keyboard typing + tests). */
 function findPath(letters,word,from){
   const used=new Set(),path=[];
   const go=(i,cands)=>{if(i===word.length)return true;
     for(const t of cands){if(used.has(t)||letters[t]!==word[i])continue;used.add(t);path.push(t);
       if(go(i+1,NB[t]))return true;used.delete(t);path.pop();}return false;};
+  const start=from&&from.length?[NB[from[from.length-1]]]:null;
   if(from&&from.length){used.clear();from.forEach(t=>used.add(t));path.push(...from);return go(from.length,NB[from[from.length-1]])?path.slice():null;}
   return go(0,[...Array(N).keys()])?path.slice():null;}
+/** All dictionary words traceable on the board -> Map(word->path). */
 function solve(letters,dict){
   const out=new Map(),used=new Array(N).fill(false),path=[];
   const dfs=(t,pre)=>{pre+=letters[t];if(!dict.hasPrefix(pre))return;used[t]=true;path.push(t);
@@ -67,21 +74,30 @@ function placeWord(grid,word,rnd,pref=0){
       grid[t]=old;used.delete(t);path.pop();return false;};
     if(go(0,(rnd()*N)|0))return path;}
   return null;}
+/* ---------- Difficulty: ONE central config consumed by the generator, scoring and server ----------
+   lens/pool: lengths of the words planted first. straight: +1 plants words on straight lines, -1 forces zig-zag paths.
+   wf: letter-weight tweaks for the fill. ok(m): what a "desirable" board looks like (m = metrics of the solved board).
+   score(m,ev): ranks fallback candidates. attempts/budget: hard bounds so generation can never loop forever. mult: scoring multiplier. */
 const RARE='JKVWXYZ';
 const DIFFICULTY={
-  easy:{id:'easy',label:'EASY',mult:1,lens:[5,5,4,4,4,4],pool:[4,5],straight:1,wf:k=>VOWELS.includes(k)?1.15:RARE.includes(k)?.4:1,attempts:80,budget:220,minWords:100,minCover:23,vmin:8,vmax:13,ok:m=>m.s5>=.88&&m.six<=50&&m.common>=.47,rank:(m,ev)=>m.s5*300+m.common*150+m.commonN*.4-m.six*.5},
-  hard:{id:'hard',label:'HARD',mult:1.25,lens:[8,7,6,6,5],pool:[5,8],straight:-1,wf:k=>VOWELS.includes(k)?.92:RARE.includes(k)?1.6:1,attempts:150,budget:400,minWords:40,minCover:21,vmin:6,vmax:12,ok:m=>m.six>=230&&m.s4<=.4&&m.maxLen>=9,rank:(m,ev)=>m.six*3+m.maxLen*6-m.s4*60-m.common*20}};
-const DIFFICULTY_IDS=['easy','hard'];
+  easy:{id:'easy',label:'EASY',mult:1,lens:[5,5,4,4,4,4],pool:[4,5],straight:1,wf:k=>VOWELS.includes(k)?1.15:RARE.includes(k)?.4:1,attempts:80,budget:220,
+    minWords:100,minCover:23,vmin:8,vmax:13,ok:m=>m.s5>=.88&&m.six<=50&&m.common>=.47,rank:(m,ev)=>m.s5*300+m.common*150+m.commonN*.4-m.six*.5},
+  normal:{id:'normal',label:'DAILY',mult:1,lens:[6,5,5,4,4,4],pool:[4,7],straight:0,wf:null,attempts:80,budget:160,
+    minWords:55,minCover:22,vmin:7,vmax:13,vmin2:8,ok:null,rank:null},
+  hard:{id:'hard',label:'HARD',mult:1.25,lens:[8,7,6,6,5],pool:[5,8],straight:-1,wf:k=>VOWELS.includes(k)?.92:RARE.includes(k)?1.6:1,attempts:150,budget:400,
+    minWords:40,minCover:21,vmin:6,vmax:12,ok:m=>m.six>=230&&m.s4<=.4&&m.maxLen>=9,rank:(m,ev)=>m.six*3+m.maxLen*6-m.s4*60-m.common*20}};
+const DIFFICULTY_IDS=['easy','hard']; // selectable modes. 'normal' is an internal legacy profile used only by the Daily Board.
 const isDifficulty=x=>typeof x==='string'&&DIFFICULTY_IDS.includes(x);
+/** Word-distribution metrics of a solved board (used to judge it against a difficulty). */
 function metrics(ev,dict){let s4=0,s5=0,six=0,com=0,max=0,sev=0,comLong=0;
   ev.sol.forEach((p,w)=>{const L=w.length;if(L<=4)s4++;if(L<=5)s5++;if(L>=6)six++;if(L>=7)sev++;if(L>max)max=L;if(dict.commonSet&&dict.commonSet.has(w)){com++;if(L>=5)comLong++;}});
   const n=Math.max(1,ev.words);return{words:ev.words,s4:s4/n,s5:s5/n,six,seven:sev,maxLen:max,common:dict.commonSet?com/n:1,commonN:com,commonLong:comLong};}
 function generate(dict,rnd=Math.random,budgetMs=null,custom=null,diffId='normal'){
-  const D=DIFFICULTY[diffId]||DIFFICULTY.easy;if(budgetMs===null||budgetMs===undefined)budgetMs=D.budget;
+  const D=DIFFICULTY[diffId]||DIFFICULTY.normal;if(budgetMs===null||budgetMs===undefined)budgetMs=D.budget;
   const small=!dict.full,minWords=small?18:D.minWords,minCover=small?20:D.minCover;
   const pool=custom||(small?dict.arr.filter(w=>w.length>=4&&w.length<=6&&!/Q/.test(w)):dict.targets(D.pool[0],D.pool[1]));
   const t0=Date.now();let best=null;
-  for(let a=0;a<D.attempts&&(Date.now()-t0<budgetMs||!best);a++){
+  for(let a=0;a<D.attempts&&(Date.now()-t0<budgetMs||!best);a++){ // bounded: attempts AND time
     const grid=Array(N).fill(null),targets=[];
     for(const L of D.lens){const c=custom?pool.filter(w=>!targets.some(x=>x.word===w)):pool.filter(w=>w.length===L||(L===D.lens[0]&&w.length===L+1));if(!c.length)continue;
       const w=c[(rnd()*c.length)|0];if(targets.some(x=>x.word===w))continue;
@@ -90,23 +106,27 @@ function generate(dict,rnd=Math.random,budgetMs=null,custom=null,diffId='normal'
     for(let i=0;i<N;i++)if(grid[i]===null){const l=pickLetter(rnd,counts,D.wf);grid[i]=l;counts[l]=(counts[l]||0)+1;}
     const ev=evaluate(grid,dict);
     if(ev.vowels<D.vmin||ev.vowels>D.vmax)continue;
-    const m=metrics(ev,dict),valid=diffId==='easy'||(ev.cover>=18&&ev.words>=25);
+    const m=metrics(ev,dict),valid=diffId==='normal'||(ev.cover>=18&&ev.words>=25);
     const cand={letters:grid,targets,...ev,metrics:m,difficulty:diffId,valid,rank:D.rank?D.rank(m,ev):ev.score,ok:false};
     if(!best||(valid&&(!best.valid||cand.rank>best.rank)))best=cand;
     const want=ev.words>=minWords&&ev.cover>=minCover&&ev.vowels>=(D.vmin2||D.vmin)&&(small||custom||!D.ok||D.ok(m));
     if(want){cand.ok=true;return cand;}}
-  return best;}
+  return best;} // fallback: best valid candidate found within the bounds
+/** Rearrange the same letters; keep the best of many tries so it stays playable. */
 function shuffleLetters(letters,dict,rnd=Math.random,budgetMs=80){
   const t0=Date.now();let best=null;
   do{const l=letters.slice();for(let i=N-1;i>0;i--){const j=(rnd()*(i+1))|0;[l[i],l[j]]=[l[j],l[i]];}
     if(l.every((x,i)=>x===letters[i]))continue;const ev=evaluate(l,dict);
     if(!best||ev.score>best.score)best={letters:l,...ev};}while(Date.now()-t0<budgetMs);
   return best||{letters:letters.slice(),...evaluate(letters,dict)};}
+
+/* ---------- ScoreManager ---------- */
 const BASE={3:10,4:25,5:45,6:70,7:100,8:140};
 const baseScore=len=>len>=9?180+(len-9)*40:BASE[len]||0;
 class ScoreManager{
   constructor(dm=1){this.dm=dm;this.reset();}
   reset(){this.score=0;this.combo=0;this.bestCombo=0;this.found=[];this.valid=0;this.attempts=0;this.best=null;this.longest='';}
+  /** Records a 3+ tile submission. kind: 'valid'|'invalid'|'duplicate'. Returns result with breakdown. */
   submit(kind,word,path,rare,mult=1,topic=false){
     this.attempts++;
     if(kind!=='valid'){this.combo=0;return{kind,word,points:0};}
@@ -120,8 +140,9 @@ class ScoreManager{
     if(rare&&word.length>=4){bonus+=15;tags.push(['RARE WORD',15]);}
     if(this.combo%10===0){bonus+=100;tags.push(['COMBO MASTER',100]);}
     if(this.valid%10===0){bonus+=50;tags.push(['WORD HUNTER',50]);}
-    const subtotal=base+comboBonus+bonus,points=Math.round(subtotal*this.dm);
-    this.score+=points;this.found.push({word,points});
+    const subtotal=base+comboBonus+bonus,points=Math.round(subtotal*this.dm); // base + combo + specials, then x difficulty
+    this.score+=points;
+    this.found.push({word,points});
     if(!this.best||points>this.best.points)this.best={word,points};
     if(word.length>this.longest.length)this.longest=word;
     return{kind,word,points,base,comboBonus,special:bonus,subtotal,diffMult:this.dm,tags,combo:this.combo};}

@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Wordamix</string>
+    <string name="title_activity_main">Wordamix</string>
+    <string name="package_name">com.albertnainar.wordamix</string>
+    <string name="custom_url_scheme">com.albertnainar.wordamix</string>
+</resources>

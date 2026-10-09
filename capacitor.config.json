@@ -1,0 +1,18 @@
+{
+  "appId": "com.albertnainar.wordamix",
+  "appName": "Wordamix",
+  "webDir": "www",
+  "backgroundColor": "#0c0e1a",
+  "server": {
+    "androidScheme": "https"
+  },
+  "android": {
+    "allowMixedContent": false
+  },
+  "plugins": {
+    "SystemBars": {
+      "insetsHandling": "css",
+      "style": "DARK"
+    }
+  }
+}
