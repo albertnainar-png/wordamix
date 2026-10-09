@@ -17,16 +17,19 @@ function start(o={}){
     if(!PUBLIC.test(p)){res.writeHead(404);return res.end('Not found');}
     fs.readFile(path.join(ROOT,p),(e,b)=>{if(e){res.writeHead(404);return res.end('Not found');}
       res.writeHead(200,{'Content-Type':MIME[path.extname(p)]||'application/octet-stream','X-Content-Type-Options':'nosniff','Cache-Control':'no-cache'});res.end(b);});});
-  const wss=new WebSocketServer({server,path:'/ws',maxPayload:4096,verifyClient:i=>!allowed.length||allowed.includes(i.origin)});
-  wss.on('connection',ws=>{
-    const conn={send:o=>{if(ws.readyState===1)ws.send(JSON.stringify(o));},close:()=>ws.close(),pid:null,code:null};
+  const wss=new WebSocketServer({server,path:'/ws',maxPayload:4096,verifyClient:i=>{const ok=!allowed.length||allowed.includes(i.origin);if(!ok)console.warn('WebSocket origin rejected:',i.origin||'(missing)');return ok;}});
+  wss.on('connection',(ws,req)=>{
+    console.log('WebSocket connected; origin:',req.headers.origin||'(missing)');
+    const conn={send:o=>{if(o&&o.t==='error')console.warn('Multiplayer message rejected:',o.code||'unknown');if(o&&o.t==='joined')console.log('Room creation/join accepted.');if(ws.readyState===1)ws.send(JSON.stringify(o));},close:()=>ws.close(),pid:null,code:null};
     let tokens=30,last=Date.now(),viol=0; // token bucket: burst 30, 15 msgs/s
     ws.on('message',(d,isBin)=>{
       const now=Date.now();tokens=Math.min(30,tokens+(now-last)*0.015);last=now;
       if(isBin||tokens<1){if(++viol>100)ws.close(1008,'rate');return conn.send({t:'error',code:'rate_limited',msg:'Slow down.'});}
       tokens--;let m;try{m=JSON.parse(d.toString());}catch(e){return conn.send({t:'error',code:'bad_msg',msg:'Bad message.'});}
+      if(m&&['create','join'].includes(m.t))console.log('Multiplayer request received:',m.t);
       manager.handle(conn,m);});
-    ws.on('close',()=>manager.disconnect(conn));ws.on('error',()=>{});});
+    ws.on('close',(code)=>{console.log('WebSocket closed; code:',code);manager.disconnect(conn);});
+    ws.on('error',e=>console.warn('WebSocket transport error:',e.message));});
   const port=o.port===undefined?(+process.env.PORT||8080):o.port;
   return new Promise(r=>server.listen(port,o.host||'0.0.0.0',()=>r({server,manager,port:server.address().port,
     close:()=>new Promise(c=>{manager.dispose();wss.clients.forEach(w=>w.terminate());wss.close();server.close(()=>c());})})));}
