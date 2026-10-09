@@ -88,7 +88,7 @@ input{font:inherit;font-size:16px;color:var(--txt);background:var(--panel);borde
  <div id="wordbox" aria-hidden="true">&nbsp;</div><div id="fb" role="status" aria-live="polite">&nbsp;</div>
  <div id="live" hidden role="status" aria-label="Live leaderboard"></div>
  <div id="boardwrap"><div id="grid" tabindex="0" role="application" aria-label="Letter board. Arrow keys move, Space selects, Enter submits, or just type a word."></div><svg id="path"><polyline points=""/></svg><div id="cd"></div></div>
- <div class="tools"><button id="shuf">SHUFFLE <span id="sc">3</span></button><button id="clear">CLEAR</button><button id="wordsb" style="display:none" aria-label="Show possible words">WORDS</button></div>
+ <div class="tools"><button id="shuf">SHUFFLE <span id="sc">3</span></button><button id="wordsb" style="display:none" aria-label="Show possible words">WORDS</button></div>
  <div id="latest"></div></section>
 
 <section id="mp" class="screen"><div class="col center"><h2 class="logo" style="font-size:30px">Multiplayer</h2>
@@ -159,7 +159,7 @@ function hud(){$('score').textContent=score.score;$('combo').textContent=score.c
 /* ---- SelectionManager: pointer engine ----
  Geometry read once per gesture; hit-test is pure math with a circular radius per tile;
  each move segment is sampled so fast swipes can't skip tiles. */
-const Sel={id:null,geo:null,lx:0,ly:0,
+const Sel={id:null,geo:null,lx:0,ly:0,cancelled:false,
  hit(x,y,loose){const g=this.geo,fx=(x-g.l)/g.pitch,fy=(y-g.t)/g.pitch,c=Math.floor(fx),r=Math.floor(fy);
   if(c<0||r<0||c>4||r>4)return -1;const cx=g.l+c*g.pitch+g.tile/2,cy=g.t+r*g.pitch+g.tile/2;
   return loose||Math.hypot(x-cx,y-cy)<=g.pitch*.46?r*5+c:-1;},
@@ -169,11 +169,11 @@ const Sel={id:null,geo:null,lx:0,ly:0,
  down(e){if(S!=='PLAYING'||this.id!==null||(e.pointerType==='mouse'&&e.button!==0))return;e.preventDefault();
   const r=grid.getBoundingClientRect();this.geo={l:r.left,t:r.top,gap:8,pitch:(r.width+8)/5,tile:(r.width-32)/5};
   const t=this.hit(e.clientX,e.clientY,true);if(t<0)return;this.id=e.pointerId;try{grid.setPointerCapture(e.pointerId)}catch(_){}
-  Audio.unlock();sel=[];this.lx=e.clientX;this.ly=e.clientY;this.add(t);paintSel();},
+  Audio.unlock();sel=[];this.cancelled=false;this.lx=e.clientX;this.ly=e.clientY;this.add(t);paintSel();},
  move(e){if(e.pointerId!==this.id)return;e.preventDefault();const n=sel.length;
   const ev=e.getCoalescedEvents?e.getCoalescedEvents():[];(ev.length?ev:[e]).forEach(p=>this.seg(p.clientX,p.clientY));if(sel.length!==n)paintSel();},
  up(e,cancel){if(e.pointerId!==this.id)return;this.id=null;try{grid.releasePointerCapture(e.pointerId)}catch(_){}
-  if(cancel){sel=[];paintSel();return;}submit();}};
+  const wasCancelled=this.cancelled;this.cancelled=false;if(cancel||wasCancelled){sel=[];paintSel();return;}submit();}};
 grid.addEventListener('pointerdown',e=>Sel.down(e),{passive:false});
 grid.addEventListener('pointermove',e=>Sel.move(e),{passive:false});
 grid.addEventListener('pointerup',e=>Sel.up(e,false));
@@ -250,7 +250,7 @@ $('play').onclick=()=>start(false);$('dailyb').onclick=()=>start(true);$('again'
 $('share').onclick=async()=>{const s=score,t='Wordamix'+(daily?' Daily '+todayStr():'')+': '+s.score+' pts, '+s.valid+' words, best combo ×'+s.bestCombo+'. Beat me: '+location.href.split('#')[0];try{if(navigator.share)await navigator.share({text:t});else{await navigator.clipboard.writeText(t);$('r-new').textContent='Copied to clipboard';}}catch(e){}};$('quit').onclick=home;$('home2').onclick=home;
 $('howb').onclick=()=>show('how');$('setb').onclick=()=>{const d=Store.d;$('stats').textContent='Games '+(d.games||0)+' · Words '+d.total+' · Best combo ×'+d.bestCombo+' · Longest '+(d.longest||'–')+' · Recent: '+((d.recent||[]).join(', ')||'–')+'\n'+WMX.DIFFICULTY_IDS.map(k=>{const e=(d.stats||{})[k]||{games:0,best:0,bestCombo:0,longest:''};return DIFF[k].label+': games '+e.games+' · best '+e.best+' · combo ×'+e.bestCombo+' · longest '+(e.longest||'–');}).join('\n');show('settings');};
 document.querySelectorAll('[data-go]').forEach(b=>b.onclick=()=>show(b.dataset.go));
-$('wordsb').onclick=openWords;$('r-wordsb').onclick=openWords;$('wl-close').onclick=closeWords;$('pause').onclick=pause;$('resume').onclick=resume;$('shuf').onclick=doShuffle;$('clear').onclick=()=>{if(S==='PLAYING'){sel=[];paintSel();feedback('Cleared');}};
+$('wordsb').onclick=openWords;$('r-wordsb').onclick=openWords;$('wl-close').onclick=closeWords;$('pause').onclick=pause;$('resume').onclick=resume;$('shuf').onclick=doShuffle;
 $('mute').onclick=()=>{Store.d.sound=!Store.d.sound;Store.save();Audio.unlock();$('s-sound').checked=Store.d.sound;$('mute').style.opacity=Store.d.sound?1:.5;};
 const bind=(id,k,fn)=>{const el=$(id);el.checked=Store.d[k];el.onchange=()=>{Store.d[k]=el.checked;Store.save();fn&&fn();};};
 Store.load();if(!WMX.isDifficulty(Store.d.diff))Store.d.diff='easy'; // migrate old Normal/Expert choice
